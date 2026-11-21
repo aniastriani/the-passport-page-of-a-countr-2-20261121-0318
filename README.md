@@ -13,7 +13,7 @@ a consistent travel history of entry and exit stamps (every stamp dated after
 the passport's 02 JUN 2026 issue date), a stamp-duty fee stamp and a small
 map of the island with its capital, Port Aureline.
 
-The drawing is fully deterministic: a fixed seed, no clock, no network, so
+The drawing is fully deterministic: no clock, no network, no randomness, so
 every run writes byte-identical output.
 
 ## Run it
@@ -23,9 +23,10 @@ python3 main.py
 ```
 
 That writes `entry.png` (1024×1024, under 1 MiB) to `$MAKEFUN_OUTPUT_DIR`
-when set, otherwise to `./out/entry.png`. It needs Pillow (`pip install
-pillow`); it prefers DejaVu, Liberation or Noto fonts when present and falls
-back to Pillow's built-in font.
+when set, otherwise to `./out/entry.png`. It uses only the Python standard
+library — no Pillow, no third-party packages: the picture is painted pixel
+by pixel into a bytearray, text comes from a built-in 5x7 bitmap font, and
+the PNG is encoded by hand.
 
 ---
 
