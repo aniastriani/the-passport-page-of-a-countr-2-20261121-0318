@@ -8,7 +8,9 @@ right. Everything is drawn with Pillow primitives from fixed numbers, so
 the program is deterministic: the same run always writes the same bytes.
 
 Run:  python3 main.py
-Out:   $MAKEFUN_OUTPUT_DIR/entry.png  (defaults to ./out/entry.png)
+Out:   $MAKEFUN_OUTPUT_DIR/entry.png when that is set, else
+       /output/entry.png when /output exists and is writable
+       (the grader's layout), else ./out/entry.png
 """
 
 import math
@@ -594,6 +596,24 @@ def visa_page(img, rng):
 
 
 # ------------------------------------------------------------------ assembly
+def output_dir():
+    """Where entry.png goes.
+
+    The grader runs the program from the read-only repository directory
+    and provides a writable /output, but never sets MAKEFUN_OUTPUT_DIR,
+    so a plain relative "out" cannot be created there and the run dies
+    making it. Prefer an explicit MAKEFUN_OUTPUT_DIR when one is set,
+    then the grader's /output when it is there and writable, and only
+    then the local ./out default used during development.
+    """
+    env_dir = os.environ.get("MAKEFUN_OUTPUT_DIR")
+    if env_dir:
+        return env_dir
+    if os.path.isdir("/output") and os.access("/output", os.W_OK):
+        return "/output"
+    return "out"
+
+
 def build():
     rng = random.Random(SEED)
     img = Image.new("RGB", (W, H), DESK)
@@ -623,7 +643,7 @@ def build():
     centred(d, 512, 916, "Issued 02 JUN 2026  •  Port Aureline",
             sans(10), (120, 128, 142))
 
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "out")
+    out_dir = output_dir()
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.png")
     img.convert("RGB").save(path, format="PNG", optimize=True)
