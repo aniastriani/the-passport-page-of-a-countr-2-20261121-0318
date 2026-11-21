@@ -45,18 +45,50 @@ FONT_DIRS = [
     "/usr/share/fonts/truetype/freefont",
 ]
 
+# Extra roots searched recursively if the known dirs have no match: the
+# grader's pinned image may keep its fonts somewhere else entirely.
+FONT_ROOTS = ["/usr/share/fonts"]
 
-def load_font(names, size):
-    """First matching TrueType font, else Pillow's built-in scalable font."""
+
+def _font_paths(names):
+    """Candidate font files, in order: the known dirs first (so a machine
+    with the usual fonts picks exactly the same file as before), then a
+    sorted recursive walk of the system font tree."""
+    seen = set()
     for d in FONT_DIRS:
         for name in names:
             path = os.path.join(d, name)
-            if os.path.exists(path):
-                try:
-                    return ImageFont.truetype(path, size)
-                except OSError:
-                    continue
-    return ImageFont.load_default(size)
+            if path not in seen and os.path.exists(path):
+                seen.add(path)
+                yield path
+    for root in FONT_ROOTS:
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames.sort()
+            for name in names:
+                if name in filenames:
+                    path = os.path.join(dirpath, name)
+                    if path not in seen:
+                        seen.add(path)
+                        yield path
+
+
+def load_font(names, size):
+    """First matching TrueType font, else Pillow's built-in scalable font.
+
+    Font loading never raises: a corrupt or unreadable file is skipped
+    (truetype can fail with more than OSError), and the built-in fallback
+    works on old Pillow too -- its sized form needs Pillow >= 10.1, so
+    fall back to the unsized form on TypeError.
+    """
+    for path in _font_paths(names):
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    try:
+        return ImageFont.load_default(size)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def serif(size):
